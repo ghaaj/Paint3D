@@ -1,0 +1,19 @@
+{
+    "requests": {
+        "packageList": {
+            "body": {
+                "type": "ProductId",
+                "url": "9nblggh5fv99",
+                "ring": "RP",
+                "lang": "en-US"
+            },
+            "headers": {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            "method": "POST",
+            "url": "https://store.rg-adguard.net/api/GetFiles"
+        }
+    },
+    "outDir": "./packages",
+    "matches": "^Microsoft\\.MSPaint_.*?\\.appxbundle$"
+}

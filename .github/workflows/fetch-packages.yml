@@ -1,0 +1,44 @@
+name: Fetch Packages
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "fetch-packages.ab"
+  workflow_dispatch:
+jobs:
+  run-amber:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install amber
+        run: sudo snap install amber-bash --classic
+
+      - name: Install jq
+        run: |
+          sudo apt update
+          sudo apt install -y jq
+
+      - name: Compile fetch-packages.ab
+        run: amber-bash ./fetch-packages.ab ./fetch-packages.sh
+
+      - name: Run fetch-packages.sh
+        run: ./fetch-packages.sh
+
+      - name: Install Git LFS
+        run: |
+          sudo apt install -y git-lfs
+          git lfs install
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push
+        run: |
+          git add .
+          git commit -m "fetch packages"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

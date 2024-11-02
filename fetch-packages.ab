@@ -1,0 +1,84 @@
+import { dir_exist, create_dir, file_exist } from "std/fs"
+import { error, get_env_var } from "std/env"
+import { split, rpad, parse, join, replace_regex, trim, lines, len } from "std/text"
+import { ceil } from "std/math"
+
+fun format_error_message(message_lines: [Text]): Text {
+    let COLUMNS = parse(get_env_var("COLUMNS")) failed {
+        return join(message_lines, "\n")
+    }
+    let formatted_message_lines = [rpad("", " ", COLUMNS - 1)]
+    loop line in lines(replace_regex(join(message_lines, "\n"), "^[^ ]", " &") + "\n") {
+        let pad_length = COLUMNS * ceil(len(line) / COLUMNS)
+        formatted_message_lines += [rpad(line, " ", pad_length)]
+    }
+    return join(formatted_message_lines, "\n")
+}
+
+fun fetch_package_list(config_file: Text): [Text]? {
+    if not file_exist(config_file): error(format_error_message(["ERROR: The file {config_file} does not exist."]))
+    let payload = $jq -r '.requests.packageList.body | to_entries | map("\(.key)=\(.value)") | join("&")' {config_file}$?
+    let headers = $jq -r '.requests.packageList.headers | to_entries | map("-H \(.key):\(.value)") | join(" ")' {config_file}$?
+    let method = $jq -r '.requests.packageList.method' {config_file}$?
+    let url = $jq -r '.requests.packageList.url' {config_file}$?
+    let package_list = $curl -s -X {method} {headers} -d {payload} {url} | hq "\{table: table.tftable tr:nth-of-type(n+2) | [td | \{name: @text, url: a | @(href), sha1sum: @sibling(2)}]}" | jq '.table[] | @json'$ failed {
+        error(format_error_message([
+            "ERROR: Failed to fetch package list."
+        ]))
+    }
+    return split(package_list, "\n")
+}
+
+fun fetch_package(package_entry: Text, outdir: Text, package_name_regex: Text): Text? {
+    let package_name = $echo "{package_entry}" | jq -r 'fromjson | .name'$?
+    $echo {package_name} | grep -qP "{package_name_regex}"$ failed {
+        echo "skipping {package_name}"
+        return ""
+    }
+    echo "downloading {package_name}..."
+    let downloaded_file_path = "{outdir}/{package_name}"
+    let package_url = $echo "{package_entry}" | jq -r 'fromjson | .url'$?
+    let sha1sum_expected = $echo "{package_entry}" | jq -r 'fromjson | .sha1sum'$?
+
+    let _verbose_output = $curl -sL -w "%\{http_code}" -o "{downloaded_file_path}" -D - "{package_url}"$?
+    let http_code = $echo "{_verbose_output}" | tail -1$?
+    let verbose_output = $echo "{_verbose_output}" | head -n -1$?
+    $echo {http_code} | grep -qP '^2\\d\\d\$'$ failed {
+        error(format_error_message([
+            "ERROR: Failed to fetch {package_name}. Verbose output: ",
+            replace_regex(trim(verbose_output), "^", "    ")
+        ]))
+    }
+    let sha1sum_actual = $sha1sum "{downloaded_file_path}" | awk '\{ print \$1 }'$?
+    if sha1sum_actual != sha1sum_expected {
+        error(format_error_message([
+            "ERROR: The SHA-1 hash of file {package_name} does not match.",
+            "    Expected: {sha1sum_expected}",
+            "    Actual:   {sha1sum_actual}"
+        ]))
+    }
+    return package_name
+}
+
+main (args) {
+    if args[1] == "": error(format_error_message([
+        "ERROR: No configuration file path was passed."
+    ]))
+    let config_file = args[1]
+    let package_name_regex = $jq -r .matches {config_file}$?
+    let OUTDIR = $jq -r .outDir {config_file}$?
+    if not dir_exist(OUTDIR): create_dir(OUTDIR)
+
+    let package_list = fetch_package_list(config_file)?
+    let downloaded_list = [Text]
+    loop package_entry in package_list {
+        let downloaded_package =  fetch_package(package_entry, OUTDIR, package_name_regex)?
+        if trim(downloaded_package) != "": downloaded_list += ["    {downloaded_package}"]
+    }
+    if len(downloaded_list) > 0 {
+        echo "Successfully downloaded the following files:"
+        echo join(downloaded_list, "\n")
+    } else {
+        echo "Nothing matched the regex {package_name_regex}"
+    }
+}
