@@ -21,11 +21,14 @@ fun fetch_package_list(config_file: Text): [Text]? {
     let headers = $jq -r '.requests.packageList.headers | to_entries | map("-H \(.key):\(.value)") | join(" ")' {config_file}$?
     let method = $jq -r '.requests.packageList.method' {config_file}$?
     let url = $jq -r '.requests.packageList.url' {config_file}$?
-    let package_list = $curl -s -X {method} {headers} -d {payload} {url} | hq "\{table: table.tftable tr:nth-of-type(n+2) | [td | \{name: @text, url: a | @(href), sha1sum: @sibling(2)}]}" | jq '.table[] | @json'$ failed {
+    let headers_output_path = "./packagelist-headers.txt"
+    let package_list = $curl -o - -D {headers_output_path} -s -X {method} {headers} -d {payload} {url} | hq "\{table: table.tftable tr:nth-of-type(n+2) | [td | \{name: @text, url: a | @(href), sha1sum: @sibling(2)}]}" | jq '.table[] | @json'$ failed {
+        $cat {headers_output_path}$?
         error(format_error_message([
             "ERROR: Failed to fetch package list."
         ]))
     }
+    $cat {headers_output_path}$?
     return split(package_list, "\n")
 }
 
