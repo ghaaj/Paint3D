@@ -6,6 +6,8 @@ on:
       - "fetch-packages.ab"
       - ".github/workflows/**"
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   run-amber:
     runs-on: ubuntu-latest
