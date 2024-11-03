@@ -17,18 +17,23 @@ fun format_error_message(message_lines: [Text]): Text {
 
 fun fetch_package_list(config_file: Text): [Text]? {
     if not file_exist(config_file): error(format_error_message(["ERROR: The file {config_file} does not exist."]))
-    let payload = $jq -r '.requests.packageList.body | to_entries | map("\(.key)=\(.value)") | join("&")' {config_file}$?
-    let headers = $jq -r '.requests.packageList.headers | to_entries | map("-H \(.key):\(.value)") | join(" ")' {config_file}$?
-    let method = $jq -r '.requests.packageList.method' {config_file}$?
-    let url = $jq -r '.requests.packageList.url' {config_file}$?
-    let headers_output_path = "./packagelist-headers.txt"
-    let package_list = $curl -o - -D {headers_output_path} -s -X {method} {headers} -d {payload} {url} | hq "\{table: table.tftable tr:nth-of-type(n+2) | [td | \{name: @text, url: a | @(href), sha1sum: @sibling(2)}]}" | jq '.table[] | @json'$ failed {
-        $cat {headers_output_path}$?
+    let payload = $jq -r '.requests.packageList | .postData |= (to_entries | map("\(.key)=\(.value)") | join("&"))' {config_file}$?
+    let FLARESOLVERR_PORT = get_env_var("FLARESOLVERR_PORT")
+    if FLARESOLVERR_PORT == "": FLARESOLVERR_PORT = "8191"
+    let flaresolverr_response = $curl -sL -X POST "http://localhost:{FLARESOLVERR_PORT}/v1" -H 'Content-Type: application/json' -d "{payload}" -o -$?
+    let flaresolverr_status = $echo "{flaresolverr_response}" | jq -r .status$?
+    let response = $echo "{flaresolverr_response}" | jq -r .solution.response$?
+    if flaresolverr_status != "ok" {
         error(format_error_message([
-            "ERROR: Failed to fetch package list."
+            "ERROR: Failed to fetch package list. Response from FlareSolverr server:",
+            $echo "{flaresolverr_response}" | jq .$?
         ]))
     }
-    $cat {headers_output_path}$?
+    let package_list = $echo "{response}" | hq "\{table: table.tftable tr:nth-of-type(n+2) | [td | \{name: @text, url: a | @(href), sha1sum: @sibling(2)}]}" | jq '.table[] | @json'$ failed {
+        error(format_error_message([
+            "ERROR: Failed to parse response HTML."
+        ]))
+    }
     return split(package_list, "\n")
 }
 

@@ -9,6 +9,8 @@ on:
 jobs:
   run-amber:
     runs-on: ubuntu-latest
+    env:
+      FLARESOLVERR_PORT: 8191
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +26,15 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: html-query
+
+      - name: Start FlareSolverr
+        run: |
+          docker run -d \
+            --name=flaresolverr \
+            -p $FLARESOLVERR_PORT:8191 \
+            -e LOG_LEVEL=info \
+            --restart unless-stopped \
+            ghcr.io/flaresolverr/flaresolverr:latest
 
       - name: Compile fetch-packages.ab
         run: amber-bash ./fetch-packages.ab ./fetch-packages.sh
