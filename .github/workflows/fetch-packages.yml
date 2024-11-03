@@ -4,6 +4,7 @@ on:
     branches: ["main"]
     paths:
       - "fetch-packages.ab"
+      - "requests.json"
       - ".github/workflows/**"
   workflow_dispatch:
 permissions:
@@ -57,7 +58,7 @@ jobs:
       - name: Commit and push
         run: |
           git add .
-          git commit -m "fetch packages"
+          git commit -m "Fetch packages"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
