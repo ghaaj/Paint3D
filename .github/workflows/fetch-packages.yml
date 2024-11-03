@@ -23,7 +23,7 @@ jobs:
         run: amber-bash ./fetch-packages.ab ./fetch-packages.sh
 
       - name: Run fetch-packages.sh
-        run: ./fetch-packages.sh
+        run: ./fetch-packages.sh ./requests.json
 
       - name: Install Git LFS
         run: |
