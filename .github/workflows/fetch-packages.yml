@@ -4,6 +4,7 @@ on:
     branches: ["main"]
     paths:
       - "fetch-packages.ab"
+      - ".github/workflows/**"
   workflow_dispatch:
 jobs:
   run-amber:
