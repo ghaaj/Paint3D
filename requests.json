@@ -16,5 +16,5 @@
         }
     },
     "outDir": "./packages",
-    "matches": "^Microsoft\\.MSPaint_.*?\\.appxbundle$"
+    "matches": "^Microsoft\\.MSPaint_.*?$"
 }
