@@ -20,6 +20,11 @@ jobs:
           sudo apt update
           sudo apt install -y jq
 
+      - name: Install hq
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: html-query
+
       - name: Compile fetch-packages.ab
         run: amber-bash ./fetch-packages.ab ./fetch-packages.sh
 
