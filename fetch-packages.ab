@@ -20,7 +20,19 @@ fun fetch_package_list(config_file: Text): [Text]? {
     let payload = $jq -r '.requests.packageList | .postData |= (to_entries | map("\(.key)=\(.value)") | join("&"))' {config_file}$?
     let FLARESOLVERR_PORT = get_env_var("FLARESOLVERR_PORT")
     if FLARESOLVERR_PORT == "": FLARESOLVERR_PORT = "8191"
-    let flaresolverr_response = $curl -sL --retry 5 --retry-delay 10 -X POST "http://localhost:{FLARESOLVERR_PORT}/v1" -H 'Content-Type: application/json' -d "{payload}" -o -$?
+    let flaresolverr_response = ""
+    let MAX_RETRY_COUNT = 5
+    let SLEEP_TIME = 5
+    let retry_count = 0
+    loop {
+        retry_count += 1
+        flaresolverr_response = $curl -sL -X POST "http://localhost:{FLARESOLVERR_PORT}/v1" -H 'Content-Type: application/json' -d "{payload}" -o -$ failed {
+            echo "curl ({status}): Retry in {SLEEP_TIME}s ({retry_count}/{MAX_RETRY_COUNT} failed)..."
+            $sleep {SLEEP_TIME}$?
+            if retry_count < MAX_RETRY_COUNT: continue
+        }
+        break
+    }
     let flaresolverr_status = $echo "{flaresolverr_response}" | jq -r .status$?
     let response = $echo "{flaresolverr_response}" | jq -r .solution.response$?
     if flaresolverr_status != "ok" {
