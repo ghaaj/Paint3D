@@ -48,4 +48,5 @@ Version 2023.2310.24037.0 or earlier is recommended because later versions have 
 - [jqlang/jq](https://github.com/jqlang/jq)
 
 ## Additional information
-The `.appxbundle` file is a ZIP archive; the `.BlockMap` file is a CAB archive containing only BlockMap.xml file.
+- The `.appxbundle` file is a ZIP archive
+- The `.BlockMap` file is a CAB archive
