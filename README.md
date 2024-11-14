@@ -7,7 +7,7 @@ Download the version of the package you want to install from the [packages direc
 
 Version 2023.2310.24037.0 or earlier is recommended because later versions have [the problem that the "Open with" context menu is missing/broken](https://answers.microsoft.com/en-us/windows/forum/all/how-do-i-add-paint-3d-to-the-open-with-menu/14ad161e-a11c-4566-a4af-154f8e543ce0).
 
-### Download directly from dl.delivery.mp.microsoft.com (Unavailable since 2024/11/04)
+### Download directly from dl.delivery.mp.microsoft.com
 1. Clone this repository and clean up the `packages` directory
 
    ```sh
