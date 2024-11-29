@@ -45,11 +45,6 @@ jobs:
       - name: Run fetch-packages.sh
         run: ./fetch-packages.sh ./requests.json
 
-      - name: Install Git LFS
-        run: |
-          sudo apt install -y git-lfs
-          git lfs install
-
       - name: Configure git
         run: |
           git config --global user.name "github-actions[bot]"
